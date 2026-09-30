@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Poster</title>
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: #f5f5f5;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    .text {
+      position: absolute;
+      font-size: 70px;
+      font-weight: bold;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="text" id="follow">MOVE ME</div>
+
+<script>
+  const text = document.getElementById("follow");
+
+  document.addEventListener("mousemove", (event) => {
+    text.style.left = event.clientX + "px";
+    text.style.top = event.clientY + "px";
+  });
+</script>
+
+</body>
+</html>
