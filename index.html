@@ -4,23 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Iron the Poster</title>
+<title>Iron The Poster</title>
 
 <style>
 * {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #eeeeee;
+  background: #d7d7d7;
   cursor: none;
 }
 
-/* 整个舞台 */
 #stage {
   width: 100vw;
   height: 100vh;
@@ -34,22 +34,21 @@ html, body {
 #poster {
   position: relative;
 
-  height: 94vh;
-  max-width: 94vw;
+  height: 96vh;
+  max-width: 96vw;
 
   aspect-ratio: 0.707 / 1;
 
   overflow: hidden;
 
-  background: black;
+  background: #000;
 
   box-shadow:
-    0 18px 35px rgba(0,0,0,.22);
+    0 20px 45px rgba(0,0,0,.25);
 }
 
-
-/* 下面：平整原图 */
-#flat {
+/* 平整版在下面 */
+#flatPoster {
   position: absolute;
   inset: 0;
 
@@ -62,8 +61,7 @@ html, body {
   user-select: none;
 }
 
-
-/* 上面：你上传的皱版 */
+/* 皱版在上面 */
 #wrinkledCanvas {
   position: absolute;
   inset: 0;
@@ -76,29 +74,29 @@ html, body {
   pointer-events: none;
 }
 
-
 /* 熨斗 */
 #iron {
   position: fixed;
 
-  width: 220px;
+  width: 230px;
   height: auto;
 
-  left: 0;
-  top: 0;
+  left: -500px;
+  top: -500px;
 
-  z-index: 100;
+  z-index: 20;
 
   pointer-events: none;
   user-select: none;
 
   /*
-  根据你的熨斗 PNG，
-  让鼠标大概位于熨斗底板位置
+    鼠标位置对应熨斗底部前方
   */
   transform:
-    translate(-27%, -72%)
+    translate(-31%, -76%)
     rotate(-8deg);
+
+  transform-origin: center center;
 
   filter:
     drop-shadow(
@@ -107,29 +105,31 @@ html, body {
     );
 }
 
-
-/* 按住时稍微压下去 */
+/* 按下的时候稍微有压纸感 */
 body.ironing #iron {
   transform:
-    translate(-27%, -70%)
+    translate(-31%, -73%)
     rotate(-8deg)
     scale(.985);
+
+  filter:
+    drop-shadow(
+      5px 7px 4px
+      rgba(0,0,0,.22)
+    );
 }
 
-
-/* 小提示 */
-#instruction {
+#hint {
   position: fixed;
 
-  left: 20px;
-  top: 18px;
+  top: 20px;
+  left: 22px;
 
-  z-index: 200;
+  z-index: 30;
 
-  font-family: Arial, sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 11px;
-
-  letter-spacing: .1em;
+  letter-spacing: .12em;
 
   color: #111;
 
@@ -139,21 +139,26 @@ body.ironing #iron {
 </style>
 </head>
 
-
 <body>
 
 <div id="stage">
 
   <div id="poster">
 
-    <!-- 平整海报 -->
+    <!--
+      新的平整版
+      你刚刚上传的那张
+    -->
     <img
-      id="flat"
+      id="flatPoster"
       src="poster.png"
       draggable="false"
+      alt=""
     >
 
-    <!-- 皱版放在 Canvas -->
+    <!--
+      这里会显示你的皱版
+    -->
     <canvas id="wrinkledCanvas"></canvas>
 
   </div>
@@ -161,18 +166,17 @@ body.ironing #iron {
 </div>
 
 
-<!-- 熨斗 -->
 <img
   id="iron"
   src="iron.png"
   draggable="false"
+  alt=""
 >
 
 
-<div id="instruction">
+<div id="hint">
   HOLD + DRAG TO IRON
 </div>
-
 
 
 <script>
@@ -204,11 +208,11 @@ let lastY = null;
 
 
 
-/* =================================
-   显示你原来的皱版
-================================= */
+/* ========================================
+   加载你自己的皱版
+======================================== */
 
-function drawWrinkledPoster() {
+function loadWrinkledPoster() {
 
   const rect =
     poster.getBoundingClientRect();
@@ -254,11 +258,8 @@ function drawWrinkledPoster() {
 
 
   /*
-  不加滤镜。
-  不加纹理。
-  不加程序褶皱。
-
-  就是直接显示 poster-wrinkled.png
+    这里没有任何褶皱滤镜。
+    直接显示 poster-wrinkled.png。
   */
 
   ctx.drawImage(
@@ -272,21 +273,14 @@ function drawWrinkledPoster() {
 }
 
 
-
 wrinkled.onload =
-  drawWrinkledPoster;
-
-
-window.addEventListener(
-  "resize",
-  drawWrinkledPoster
-);
+  loadWrinkledPoster;
 
 
 
-/* =================================
-   熨平
-================================= */
+/* ========================================
+   熨斗真正接触纸面的区域
+======================================== */
 
 function ironAt(clientX, clientY) {
 
@@ -294,7 +288,6 @@ function ironAt(clientX, clientY) {
     canvas.getBoundingClientRect();
 
 
-  /* 不在海报上 */
   if (
     clientX < rect.left ||
     clientX > rect.right ||
@@ -316,8 +309,8 @@ function ironAt(clientX, clientY) {
 
 
   /*
-  删除皱版，
-  露出下面 poster.png
+    把皱版局部擦掉
+    下面的平整版自然出现
   */
 
   ctx.globalCompositeOperation =
@@ -325,15 +318,12 @@ function ironAt(clientX, clientY) {
 
 
   /*
-  熨斗底板不是圆的。
-
-  这里用扁长椭圆，
-  更像熨斗真正接触纸面的范围。
+    接触点略低于鼠标位置
   */
 
   ctx.translate(
     x,
-    y + 22
+    y + 18
   );
 
 
@@ -343,31 +333,69 @@ function ironAt(clientX, clientY) {
 
 
   /*
-  横向约 150px
-  纵向约 55px
+    做成长椭圆，
+    模拟熨斗底板，而不是圆形橡皮擦
   */
 
   ctx.scale(
     1,
-    0.36
+    0.28
   );
 
 
-  ctx.beginPath();
+  const radius = 82;
 
 
-  ctx.arc(
+  const gradient =
+    ctx.createRadialGradient(
+      0,
+      0,
+      15,
+      0,
+      0,
+      radius
+    );
+
+
+  /*
+    中间完全熨平
+    边缘非常轻微过渡
+  */
+
+  gradient.addColorStop(
     0,
-    0,
-    78,
-    0,
-    Math.PI * 2
+    "rgba(0,0,0,1)"
+  );
+
+  gradient.addColorStop(
+    0.72,
+    "rgba(0,0,0,1)"
+  );
+
+  gradient.addColorStop(
+    0.9,
+    "rgba(0,0,0,.65)"
+  );
+
+  gradient.addColorStop(
+    1,
+    "rgba(0,0,0,0)"
   );
 
 
   ctx.fillStyle =
-    "rgba(0,0,0,0.72)";
+    gradient;
 
+
+  ctx.beginPath();
+
+  ctx.arc(
+    0,
+    0,
+    radius,
+    0,
+    Math.PI * 2
+  );
 
   ctx.fill();
 
@@ -378,9 +406,9 @@ function ironAt(clientX, clientY) {
 
 
 
-/* =================================
-   熨斗移动
-================================= */
+/* ========================================
+   鼠标移动
+======================================== */
 
 document.addEventListener(
   "mousemove",
@@ -393,7 +421,7 @@ document.addEventListener(
       event.clientY;
 
 
-    /* 熨斗跟随鼠标 */
+    /* 熨斗跟着鼠标 */
     iron.style.left =
       x + "px";
 
@@ -407,7 +435,8 @@ document.addEventListener(
 
 
     /*
-    补点，让熨烫轨迹连续
+      连续补点。
+      鼠标移动很快也不会出现断层。
     */
 
     if (
@@ -432,7 +461,7 @@ document.addEventListener(
       const steps =
         Math.max(
           1,
-          Math.ceil(distance / 5)
+          Math.ceil(distance / 4)
         );
 
 
@@ -479,9 +508,9 @@ document.addEventListener(
 
 
 
-/* =================================
-   开始熨
-================================= */
+/* ========================================
+   按住鼠标 = 开始熨
+======================================== */
 
 document.addEventListener(
   "mousedown",
@@ -512,21 +541,9 @@ document.addEventListener(
 
 
 
-/* =================================
-   停止熨
-================================= */
-
-document.addEventListener(
-  "mouseup",
-  stopIroning
-);
-
-
-document.addEventListener(
-  "mouseleave",
-  stopIroning
-);
-
+/* ========================================
+   松开 = 停止
+======================================== */
 
 function stopIroning() {
 
@@ -541,6 +558,18 @@ function stopIroning() {
   );
 
 }
+
+
+document.addEventListener(
+  "mouseup",
+  stopIroning
+);
+
+
+document.addEventListener(
+  "mouseleave",
+  stopIroning
+);
 
 </script>
 
