@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Iron The Poster</title>
 
 <style>
@@ -30,7 +29,6 @@ body {
   justify-content: center;
 }
 
-/* 海报 */
 #poster {
   position: relative;
 
@@ -40,14 +38,13 @@ body {
   aspect-ratio: 0.707 / 1;
 
   overflow: hidden;
-
   background: #000;
 
   box-shadow:
     0 20px 45px rgba(0,0,0,.25);
 }
 
-/* 平整版在下面 */
+/* 下面：平整版 */
 #flatPoster {
   position: absolute;
   inset: 0;
@@ -61,7 +58,7 @@ body {
   user-select: none;
 }
 
-/* 皱版在上面 */
+/* 上面：皱版 */
 #wrinkledCanvas {
   position: absolute;
   inset: 0;
@@ -89,9 +86,6 @@ body {
   pointer-events: none;
   user-select: none;
 
-  /*
-    鼠标位置对应熨斗底部前方
-  */
   transform:
     translate(-31%, -76%)
     rotate(-8deg);
@@ -105,7 +99,6 @@ body {
     );
 }
 
-/* 按下的时候稍微有压纸感 */
 body.ironing #iron {
   transform:
     translate(-31%, -73%)
@@ -135,7 +128,6 @@ body.ironing #iron {
 
   pointer-events: none;
 }
-
 </style>
 </head>
 
@@ -145,26 +137,20 @@ body.ironing #iron {
 
   <div id="poster">
 
-    <!--
-      新的平整版
-      你刚刚上传的那张
-    -->
+    <!-- 平整版：只用 poster-flat.png -->
     <img
       id="flatPoster"
-      src="poster.png"
+      src="poster-flat.png"
       draggable="false"
       alt=""
     >
 
-    <!--
-      这里会显示你的皱版
-    -->
+    <!-- 皱版 -->
     <canvas id="wrinkledCanvas"></canvas>
 
   </div>
 
 </div>
-
 
 <img
   id="iron"
@@ -173,11 +159,9 @@ body.ironing #iron {
   alt=""
 >
 
-
 <div id="hint">
   HOLD + DRAG TO IRON
 </div>
-
 
 <script>
 
@@ -193,13 +177,11 @@ const ctx =
 const iron =
   document.getElementById("iron");
 
-
 const wrinkled =
   new Image();
 
 wrinkled.src =
   "poster-wrinkled.png";
-
 
 let ironing = false;
 
@@ -207,10 +189,9 @@ let lastX = null;
 let lastY = null;
 
 
-
-/* ========================================
-   加载你自己的皱版
-======================================== */
+/* =========================
+   加载皱版
+========================= */
 
 function loadWrinkledPoster() {
 
@@ -220,20 +201,17 @@ function loadWrinkledPoster() {
   const dpr =
     window.devicePixelRatio || 1;
 
-
   canvas.width =
     Math.round(rect.width * dpr);
 
   canvas.height =
     Math.round(rect.height * dpr);
 
-
   canvas.style.width =
     rect.width + "px";
 
   canvas.style.height =
     rect.height + "px";
-
 
   ctx.setTransform(
     dpr,
@@ -244,10 +222,8 @@ function loadWrinkledPoster() {
     0
   );
 
-
   ctx.globalCompositeOperation =
     "source-over";
-
 
   ctx.clearRect(
     0,
@@ -256,12 +232,6 @@ function loadWrinkledPoster() {
     rect.height
   );
 
-
-  /*
-    这里没有任何褶皱滤镜。
-    直接显示 poster-wrinkled.png。
-  */
-
   ctx.drawImage(
     wrinkled,
     0,
@@ -269,24 +239,20 @@ function loadWrinkledPoster() {
     rect.width,
     rect.height
   );
-
 }
-
 
 wrinkled.onload =
   loadWrinkledPoster;
 
 
-
-/* ========================================
-   熨斗真正接触纸面的区域
-======================================== */
+/* =========================
+   熨平
+========================= */
 
 function ironAt(clientX, clientY) {
 
   const rect =
     canvas.getBoundingClientRect();
-
 
   if (
     clientX < rect.left ||
@@ -297,70 +263,53 @@ function ironAt(clientX, clientY) {
     return;
   }
 
-
   const x =
     clientX - rect.left;
 
   const y =
     clientY - rect.top;
 
-
   ctx.save();
 
-
   /*
-    把皱版局部擦掉
-    下面的平整版自然出现
+    擦掉皱版
+    显示下面的 poster-flat.png
   */
-
   ctx.globalCompositeOperation =
     "destination-out";
 
-
   /*
-    接触点略低于鼠标位置
+    熨斗真正接触纸张的位置
   */
-
   ctx.translate(
     x,
     y + 18
   );
 
-
   ctx.rotate(
     -8 * Math.PI / 180
   );
 
-
   /*
-    做成长椭圆，
-    模拟熨斗底板，而不是圆形橡皮擦
+    做成扁长形，
+    不再像圆形橡皮擦
   */
-
   ctx.scale(
     1,
-    0.28
+    0.30
   );
 
-
-  const radius = 82;
-
+  const radius = 85;
 
   const gradient =
     ctx.createRadialGradient(
       0,
       0,
-      15,
+      10,
       0,
       0,
       radius
     );
-
-
-  /*
-    中间完全熨平
-    边缘非常轻微过渡
-  */
 
   gradient.addColorStop(
     0,
@@ -374,7 +323,7 @@ function ironAt(clientX, clientY) {
 
   gradient.addColorStop(
     0.9,
-    "rgba(0,0,0,.65)"
+    "rgba(0,0,0,.55)"
   );
 
   gradient.addColorStop(
@@ -382,10 +331,8 @@ function ironAt(clientX, clientY) {
     "rgba(0,0,0,0)"
   );
 
-
   ctx.fillStyle =
     gradient;
-
 
   ctx.beginPath();
 
@@ -399,16 +346,13 @@ function ironAt(clientX, clientY) {
 
   ctx.fill();
 
-
   ctx.restore();
-
 }
 
 
-
-/* ========================================
-   鼠标移动
-======================================== */
+/* =========================
+   熨斗跟随鼠标
+========================= */
 
 document.addEventListener(
   "mousemove",
@@ -420,24 +364,15 @@ document.addEventListener(
     const y =
       event.clientY;
 
-
-    /* 熨斗跟着鼠标 */
     iron.style.left =
       x + "px";
 
     iron.style.top =
       y + "px";
 
-
     if (!ironing) {
       return;
     }
-
-
-    /*
-      连续补点。
-      鼠标移动很快也不会出现断层。
-    */
 
     if (
       lastX !== null &&
@@ -450,20 +385,17 @@ document.addEventListener(
       const dy =
         y - lastY;
 
-
       const distance =
         Math.sqrt(
           dx * dx +
           dy * dy
         );
 
-
       const steps =
         Math.max(
           1,
           Math.ceil(distance / 4)
         );
-
 
       for (
         let i = 0;
@@ -475,19 +407,15 @@ document.addEventListener(
           lastX +
           dx * (i / steps);
 
-
         const py =
           lastY +
           dy * (i / steps);
-
 
         ironAt(
           px,
           py
         );
-
       }
-
     }
 
     else {
@@ -496,21 +424,17 @@ document.addEventListener(
         x,
         y
       );
-
     }
-
 
     lastX = x;
     lastY = y;
-
   }
 );
 
 
-
-/* ========================================
-   按住鼠标 = 开始熨
-======================================== */
+/* =========================
+   开始熨
+========================= */
 
 document.addEventListener(
   "mousedown",
@@ -518,32 +442,27 @@ document.addEventListener(
 
     ironing = true;
 
-
     lastX =
       event.clientX;
 
     lastY =
       event.clientY;
 
-
     document.body.classList.add(
       "ironing"
     );
-
 
     ironAt(
       event.clientX,
       event.clientY
     );
-
   }
 );
 
 
-
-/* ========================================
-   松开 = 停止
-======================================== */
+/* =========================
+   停止熨
+========================= */
 
 function stopIroning() {
 
@@ -552,19 +471,15 @@ function stopIroning() {
   lastX = null;
   lastY = null;
 
-
   document.body.classList.remove(
     "ironing"
   );
-
 }
-
 
 document.addEventListener(
   "mouseup",
   stopIroning
 );
-
 
 document.addEventListener(
   "mouseleave",
