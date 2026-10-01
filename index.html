@@ -4,171 +4,184 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Iron The Poster</title>
+<title>Iron the Poster</title>
 
 <style>
-  * {
-    box-sizing: border-box;
-  }
+* {
+  box-sizing: border-box;
+}
 
-  html,
-  body {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #d8d8d8;
-    cursor: none;
-  }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #eeeeee;
+  cursor: none;
+}
 
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+/* 整个舞台 */
+#stage {
+  width: 100vw;
+  height: 100vh;
 
-  /* 整张海报区域 */
-  #poster-wrap {
-    position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-    height: 94vh;
-    aspect-ratio: 0.707 / 1;
+/* 海报 */
+#poster {
+  position: relative;
 
-    max-width: 92vw;
-    overflow: hidden;
+  height: 94vh;
+  max-width: 94vw;
 
-    box-shadow:
-      0 20px 40px rgba(0, 0, 0, 0.28);
-  }
+  aspect-ratio: 0.707 / 1;
 
-  /* 平整海报 */
-  #flat-poster {
-    position: absolute;
-    inset: 0;
+  overflow: hidden;
 
-    width: 100%;
-    height: 100%;
+  background: black;
 
-    object-fit: fill;
+  box-shadow:
+    0 18px 35px rgba(0,0,0,.22);
+}
 
-    user-select: none;
-    pointer-events: none;
-  }
 
-  /* 皱海报 canvas */
-  #wrinkle-canvas {
-    position: absolute;
-    inset: 0;
+/* 下面：平整原图 */
+#flat {
+  position: absolute;
+  inset: 0;
 
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 
-    z-index: 2;
+  object-fit: fill;
 
-    pointer-events: none;
-  }
+  pointer-events: none;
+  user-select: none;
+}
 
-  /* 熨斗 */
-  #iron {
-    position: fixed;
 
-    width: 230px;
-    height: auto;
+/* 上面：你上传的皱版 */
+#wrinkledCanvas {
+  position: absolute;
+  inset: 0;
 
-    left: 0;
-    top: 0;
+  width: 100%;
+  height: 100%;
 
-    z-index: 10;
+  z-index: 2;
 
-    pointer-events: none;
-    user-select: none;
+  pointer-events: none;
+}
 
-    transform:
-      translate(-28%, -72%)
-      rotate(-8deg);
 
-    filter:
-      drop-shadow(
-        12px 16px 10px rgba(0,0,0,0.3)
-      );
+/* 熨斗 */
+#iron {
+  position: fixed;
 
-    transition:
-      transform 0.1s ease,
-      filter 0.1s ease;
-  }
+  width: 220px;
+  height: auto;
 
-  body.ironing #iron {
-    transform:
-      translate(-28%, -70%)
-      rotate(-8deg)
-      scale(0.98);
+  left: 0;
+  top: 0;
 
-    filter:
-      drop-shadow(
-        6px 8px 5px rgba(0,0,0,0.24)
-      );
-  }
+  z-index: 100;
 
-  /* 左上角说明 */
-  #instruction {
-    position: fixed;
+  pointer-events: none;
+  user-select: none;
 
-    left: 22px;
-    top: 20px;
+  /*
+  根据你的熨斗 PNG，
+  让鼠标大概位于熨斗底板位置
+  */
+  transform:
+    translate(-27%, -72%)
+    rotate(-8deg);
 
-    z-index: 20;
+  filter:
+    drop-shadow(
+      10px 14px 8px
+      rgba(0,0,0,.28)
+    );
+}
 
-    font-family: Arial, sans-serif;
-    font-size: 12px;
-    letter-spacing: 0.08em;
 
-    color: #111;
+/* 按住时稍微压下去 */
+body.ironing #iron {
+  transform:
+    translate(-27%, -70%)
+    rotate(-8deg)
+    scale(.985);
+}
 
-    pointer-events: none;
-  }
+
+/* 小提示 */
+#instruction {
+  position: fixed;
+
+  left: 20px;
+  top: 18px;
+
+  z-index: 200;
+
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+
+  letter-spacing: .1em;
+
+  color: #111;
+
+  pointer-events: none;
+}
+
 </style>
 </head>
 
 
 <body>
 
-  <div id="poster-wrap">
+<div id="stage">
 
-    <!-- 下面：完全平整的原海报 -->
+  <div id="poster">
+
+    <!-- 平整海报 -->
     <img
-      id="flat-poster"
+      id="flat"
       src="poster.png"
       draggable="false"
-      alt=""
     >
 
-    <!-- 上面：皱海报 -->
-    <canvas id="wrinkle-canvas"></canvas>
+    <!-- 皱版放在 Canvas -->
+    <canvas id="wrinkledCanvas"></canvas>
 
   </div>
 
-
-  <!-- 熨斗 -->
-  <img
-    id="iron"
-    src="iron.png"
-    draggable="false"
-    alt=""
-  >
+</div>
 
 
-  <div id="instruction">
-    HOLD + DRAG TO IRON
-  </div>
+<!-- 熨斗 -->
+<img
+  id="iron"
+  src="iron.png"
+  draggable="false"
+>
+
+
+<div id="instruction">
+  HOLD + DRAG TO IRON
+</div>
+
 
 
 <script>
 
-const wrap =
-  document.getElementById("poster-wrap");
+const poster =
+  document.getElementById("poster");
 
 const canvas =
-  document.getElementById("wrinkle-canvas");
+  document.getElementById("wrinkledCanvas");
 
 const ctx =
   canvas.getContext("2d");
@@ -176,10 +189,11 @@ const ctx =
 const iron =
   document.getElementById("iron");
 
-const wrinkledImage =
+
+const wrinkled =
   new Image();
 
-wrinkledImage.src =
+wrinkled.src =
   "poster-wrinkled.png";
 
 
@@ -190,14 +204,14 @@ let lastY = null;
 
 
 
-/* ================================
-   把皱版画进 Canvas
-================================ */
+/* =================================
+   显示你原来的皱版
+================================= */
 
-function setupCanvas() {
+function drawWrinkledPoster() {
 
   const rect =
-    wrap.getBoundingClientRect();
+    poster.getBoundingClientRect();
 
   const dpr =
     window.devicePixelRatio || 1;
@@ -239,8 +253,16 @@ function setupCanvas() {
   );
 
 
+  /*
+  不加滤镜。
+  不加纹理。
+  不加程序褶皱。
+
+  就是直接显示 poster-wrinkled.png
+  */
+
   ctx.drawImage(
-    wrinkledImage,
+    wrinkled,
     0,
     0,
     rect.width,
@@ -251,31 +273,28 @@ function setupCanvas() {
 
 
 
-wrinkledImage.onload =
-  setupCanvas;
+wrinkled.onload =
+  drawWrinkledPoster;
 
 
 window.addEventListener(
   "resize",
-  setupCanvas
+  drawWrinkledPoster
 );
 
 
 
-/* ================================
+/* =================================
    熨平
-================================ */
+================================= */
 
-function ironAt(
-  clientX,
-  clientY
-) {
+function ironAt(clientX, clientY) {
 
   const rect =
     canvas.getBoundingClientRect();
 
 
-  /* 鼠标不在海报上就不擦 */
+  /* 不在海报上 */
   if (
     clientX < rect.left ||
     clientX > rect.right ||
@@ -293,71 +312,62 @@ function ironAt(
     clientY - rect.top;
 
 
-  /*
-    熨平范围
-    想大一点就把 95 改成 120
-  */
-
-  const radius = 95;
-
-
   ctx.save();
 
 
   /*
-    destination-out =
-    把皱版擦掉，
-    露出下面平整海报
+  删除皱版，
+  露出下面 poster.png
   */
 
   ctx.globalCompositeOperation =
     "destination-out";
 
 
-  const gradient =
-    ctx.createRadialGradient(
-      x,
-      y,
-      radius * 0.15,
-      x,
-      y,
-      radius
-    );
+  /*
+  熨斗底板不是圆的。
 
+  这里用扁长椭圆，
+  更像熨斗真正接触纸面的范围。
+  */
 
-  gradient.addColorStop(
-    0,
-    "rgba(0,0,0,1)"
+  ctx.translate(
+    x,
+    y + 22
   );
 
-  gradient.addColorStop(
-    0.55,
-    "rgba(0,0,0,0.9)"
+
+  ctx.rotate(
+    -8 * Math.PI / 180
   );
 
-  gradient.addColorStop(
-    0.82,
-    "rgba(0,0,0,0.45)"
-  );
 
-  gradient.addColorStop(
+  /*
+  横向约 150px
+  纵向约 55px
+  */
+
+  ctx.scale(
     1,
-    "rgba(0,0,0,0)"
+    0.36
   );
-
-
-  ctx.fillStyle = gradient;
 
 
   ctx.beginPath();
 
+
   ctx.arc(
-    x,
-    y,
-    radius,
+    0,
+    0,
+    78,
     0,
     Math.PI * 2
   );
+
+
+  ctx.fillStyle =
+    "rgba(0,0,0,0.72)";
+
 
   ctx.fill();
 
@@ -368,9 +378,9 @@ function ironAt(
 
 
 
-/* ================================
-   熨斗跟随鼠标
-================================ */
+/* =================================
+   熨斗移动
+================================= */
 
 document.addEventListener(
   "mousemove",
@@ -383,6 +393,7 @@ document.addEventListener(
       event.clientY;
 
 
+    /* 熨斗跟随鼠标 */
     iron.style.left =
       x + "px";
 
@@ -396,8 +407,7 @@ document.addEventListener(
 
 
     /*
-      鼠标移动快时自动补点，
-      避免熨出来断断续续
+    补点，让熨烫轨迹连续
     */
 
     if (
@@ -422,7 +432,7 @@ document.addEventListener(
       const steps =
         Math.max(
           1,
-          Math.ceil(distance / 10)
+          Math.ceil(distance / 5)
         );
 
 
@@ -435,6 +445,7 @@ document.addEventListener(
         const px =
           lastX +
           dx * (i / steps);
+
 
         const py =
           lastY +
@@ -468,15 +479,16 @@ document.addEventListener(
 
 
 
-/* ================================
-   按下鼠标
-================================ */
+/* =================================
+   开始熨
+================================= */
 
 document.addEventListener(
   "mousedown",
   function(event) {
 
     ironing = true;
+
 
     lastX =
       event.clientX;
@@ -500,49 +512,35 @@ document.addEventListener(
 
 
 
-/* ================================
-   松开鼠标
-================================ */
+/* =================================
+   停止熨
+================================= */
 
 document.addEventListener(
   "mouseup",
-  function() {
-
-    ironing = false;
-
-    lastX = null;
-    lastY = null;
-
-
-    document.body.classList.remove(
-      "ironing"
-    );
-
-  }
+  stopIroning
 );
 
-
-
-/* ================================
-   鼠标离开窗口
-================================ */
 
 document.addEventListener(
   "mouseleave",
-  function() {
-
-    ironing = false;
-
-    lastX = null;
-    lastY = null;
-
-
-    document.body.classList.remove(
-      "ironing"
-    );
-
-  }
+  stopIroning
 );
+
+
+function stopIroning() {
+
+  ironing = false;
+
+  lastX = null;
+  lastY = null;
+
+
+  document.body.classList.remove(
+    "ironing"
+  );
+
+}
 
 </script>
 
