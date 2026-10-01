@@ -1,668 +1,611 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Iron The Poster</title>
+<title>Iron The Poster</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+<style>
+* {
+  box-sizing: border-box;
+}
 
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #d8d8d8;
-      cursor: none;
-    }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #cfcfcf;
+  cursor: none;
+}
 
-    /* 整个页面 */
-    #stage {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+#stage {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
 
-    /* 海报 */
-    #poster {
-      position: absolute;
-      height: 94vh;
-      width: auto;
-      max-width: 94vw;
-      object-fit: contain;
-      user-select: none;
-      pointer-events: none;
-      z-index: 1;
+/* 整张纸 */
+#paper {
+  position: relative;
+  height: 94vh;
+  aspect-ratio: 0.707 / 1;
+  max-width: 94vw;
 
-      /* 一点点纸张立体感 */
-      filter:
-        drop-shadow(0px 18px 25px rgba(0,0,0,0.25));
-    }
+  filter:
+    drop-shadow(0 22px 24px rgba(0,0,0,.28));
 
-    /* 褶皱层 */
-    #wrinkleCanvas {
-      position: absolute;
-      z-index: 2;
-      pointer-events: none;
-    }
+  overflow: hidden;
+  background: black;
+}
 
-    /* 熨斗 */
-    #iron {
-      position: fixed;
-      width: 220px;
-      height: auto;
+/* 平整原图 */
+#flatPoster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  user-select: none;
+  pointer-events: none;
+}
 
-      left: 0;
-      top: 0;
+/* 皱褶版本 */
+#wrinkledLayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 
-      z-index: 10;
+  pointer-events: none;
 
-      pointer-events: none;
-      user-select: none;
+  -webkit-mask-image: url(#nothing);
+}
 
-      /*
-        熨斗图片的尖端稍微偏离鼠标中心。
-        后面可以根据你的 PNG 再调。
-      */
-      transform:
-        translate(-30%, -72%)
-        rotate(-8deg);
+/* SVG 铺满纸 */
+#wrinkleSVG {
+  position: absolute;
+  inset: 0;
 
-      filter:
-        drop-shadow(12px 18px 10px rgba(0,0,0,0.28));
+  width: 100%;
+  height: 100%;
 
-      transition:
-        filter 0.15s ease;
-    }
+  pointer-events: none;
+}
 
-    /* 按住鼠标的时候 */
-    body.ironing #iron {
-      filter:
-        drop-shadow(5px 8px 5px rgba(0,0,0,0.22));
-    }
+/* 熨斗 */
+#iron {
+  position: fixed;
 
-    /* 左上角提示 */
-    #instruction {
-      position: fixed;
-      left: 22px;
-      top: 20px;
+  width: 230px;
+  height: auto;
 
-      z-index: 20;
+  left: 0;
+  top: 0;
 
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+  z-index: 100;
 
-      color: white;
-      mix-blend-mode: difference;
+  pointer-events: none;
+  user-select: none;
 
-      pointer-events: none;
+  transform:
+    translate(-28%, -72%)
+    rotate(-8deg);
 
-      opacity: 0.75;
-    }
-  </style>
+  filter:
+    drop-shadow(
+      13px 18px 11px
+      rgba(0,0,0,.32)
+    );
+
+  transition:
+    filter .12s ease,
+    transform .12s ease;
+}
+
+body.ironing #iron {
+  transform:
+    translate(-28%, -70%)
+    rotate(-8deg)
+    scale(.985);
+
+  filter:
+    drop-shadow(
+      6px 9px 5px
+      rgba(0,0,0,.25)
+    );
+}
+
+#instruction {
+  position: fixed;
+
+  left: 24px;
+  top: 22px;
+
+  z-index: 200;
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  font-size: 11px;
+  letter-spacing: .12em;
+
+  color: white;
+
+  mix-blend-mode: difference;
+
+  pointer-events: none;
+
+  opacity: .7;
+}
+
+</style>
 </head>
 
 
 <body>
 
-  <div id="stage">
+<div id="stage">
 
-    <!-- 原始平整海报 -->
+  <div id="paper">
+
+    <!-- 完全平整的海报 -->
     <img
-      id="poster"
+      id="flatPoster"
       src="poster.png"
-      alt="Poster"
       draggable="false"
     >
 
-    <!-- 程序生成的褶皱 -->
-    <canvas id="wrinkleCanvas"></canvas>
+    <!--
+      SVG负责生成真正的皱褶版本
+    -->
+    <svg
+      id="wrinkleSVG"
+      viewBox="0 0 1000 1414"
+      preserveAspectRatio="none"
+    >
+
+      <defs>
+
+        <!-- ===============================
+             纸张不规则形变
+        ================================ -->
+
+        <filter
+          id="paperDistortion"
+          x="-15%"
+          y="-15%"
+          width="130%"
+          height="130%"
+        >
+
+          <!-- 大型纸张起伏 -->
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.008 0.018"
+            numOctaves="3"
+            seed="19"
+            result="largeNoise"
+          />
+
+          <!-- 细小褶皱 -->
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency="0.035 0.075"
+            numOctaves="2"
+            seed="8"
+            result="fineNoise"
+          />
+
+          <!-- 混合两种纹理 -->
+          <feBlend
+            in="largeNoise"
+            in2="fineNoise"
+            mode="multiply"
+            result="combinedNoise"
+          />
+
+          <!-- 让整个海报发生扭曲 -->
+          <feDisplacementMap
+            in="SourceGraphic"
+            in2="combinedNoise"
+            scale="30"
+            xChannelSelector="R"
+            yChannelSelector="G"
+            result="distorted"
+          />
+
+          <!-- 纸张光照 -->
+          <feDiffuseLighting
+            in="combinedNoise"
+            surfaceScale="7"
+            diffuseConstant="1.1"
+            lighting-color="white"
+            result="paperLight"
+          >
+
+            <feDistantLight
+              azimuth="225"
+              elevation="42"
+            />
+
+          </feDiffuseLighting>
+
+          <!-- 把光影覆盖到海报 -->
+          <feBlend
+            in="distorted"
+            in2="paperLight"
+            mode="soft-light"
+          />
+
+        </filter>
+
+
+        <!-- ===============================
+             熨平区域的 Mask
+        ================================ -->
+
+        <mask id="wrinkleMask">
+
+          <!--
+            白色 = 保留皱褶
+            黑色 = 显示下面平整海报
+          -->
+
+          <rect
+            x="0"
+            y="0"
+            width="1000"
+            height="1414"
+            fill="white"
+          />
+
+          <g id="ironedAreas"></g>
+
+        </mask>
+
+
+        <!-- 柔软边缘 -->
+        <radialGradient id="ironGradient">
+
+          <stop
+            offset="0%"
+            stop-color="black"
+            stop-opacity="1"
+          />
+
+          <stop
+            offset="48%"
+            stop-color="black"
+            stop-opacity=".92"
+          />
+
+          <stop
+            offset="78%"
+            stop-color="black"
+            stop-opacity=".45"
+          />
+
+          <stop
+            offset="100%"
+            stop-color="black"
+            stop-opacity="0"
+          />
+
+        </radialGradient>
+
+      </defs>
+
+
+      <!--
+        这张图片是真正被扭曲的海报
+      -->
+
+      <image
+        href="poster.png"
+        x="0"
+        y="0"
+        width="1000"
+        height="1414"
+        preserveAspectRatio="none"
+
+        filter="url(#paperDistortion)"
+
+        mask="url(#wrinkleMask)"
+      />
+
+    </svg>
 
   </div>
 
-
-  <!-- 熨斗 -->
-  <img
-    id="iron"
-    src="iron.png"
-    alt="Iron"
-    draggable="false"
-  >
+</div>
 
 
-  <div id="instruction">
-    Hold + Drag to Iron
-  </div>
+<img
+  id="iron"
+  src="iron.png"
+  draggable="false"
+>
 
+
+<div id="instruction">
+  HOLD + DRAG TO IRON
+</div>
 
 
 <script>
 
-  const poster = document.getElementById("poster");
-  const canvas = document.getElementById("wrinkleCanvas");
-  const ctx = canvas.getContext("2d");
+const paper =
+  document.getElementById("paper");
 
-  const iron = document.getElementById("iron");
+const iron =
+  document.getElementById("iron");
 
-  let ironing = false;
+const ironedAreas =
+  document.getElementById("ironedAreas");
 
-  let lastX = null;
-  let lastY = null;
+let ironing = false;
 
+let lastX = null;
+let lastY = null;
 
 
-  /* ---------------------------------------
-     1. 让 Canvas 永远覆盖海报
-  --------------------------------------- */
 
-  function resizeCanvas() {
+/* =====================================
+   熨斗跟鼠标
+===================================== */
 
-    const rect = poster.getBoundingClientRect();
+document.addEventListener(
+  "mousemove",
+  function(event) {
 
-    canvas.style.left = rect.left + "px";
-    canvas.style.top = rect.top + "px";
+    iron.style.left =
+      event.clientX + "px";
 
-    canvas.style.width = rect.width + "px";
-    canvas.style.height = rect.height + "px";
+    iron.style.top =
+      event.clientY + "px";
 
-    canvas.width = Math.round(rect.width);
-    canvas.height = Math.round(rect.height);
 
-    createWrinkles();
-  }
+    if (!ironing) return;
 
 
+    if (
+      lastX !== null &&
+      lastY !== null
+    ) {
 
-  /* ---------------------------------------
-     2. 自动生成褶皱
-  --------------------------------------- */
+      const dx =
+        event.clientX - lastX;
 
-  function createWrinkles() {
+      const dy =
+        event.clientY - lastY;
 
-    ctx.clearRect(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-
-    /*
-      整张纸轻微的灰色质感
-    */
-
-    ctx.fillStyle = "rgba(255,255,255,0.04)";
-
-    ctx.fillRect(
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
-
-
-    /*
-      生成很多不规则折痕
-    */
-
-    const wrinkleCount = 45;
-
-
-    for (let i = 0; i < wrinkleCount; i++) {
-
-      const startX =
-        Math.random() * canvas.width;
-
-      const startY =
-        Math.random() * canvas.height;
-
-
-      const length =
-        100 + Math.random() * 350;
-
-
-      const angle =
-        Math.random() * Math.PI * 2;
-
-
-      const endX =
-        startX + Math.cos(angle) * length;
-
-      const endY =
-        startY + Math.sin(angle) * length;
-
-
-      /*
-        黑色阴影
-      */
-
-      ctx.beginPath();
-
-      ctx.moveTo(
-        startX,
-        startY
-      );
-
-
-      const controlX =
-        (startX + endX) / 2
-        + (Math.random() - 0.5) * 120;
-
-
-      const controlY =
-        (startY + endY) / 2
-        + (Math.random() - 0.5) * 120;
-
-
-      ctx.quadraticCurveTo(
-        controlX,
-        controlY,
-        endX,
-        endY
-      );
-
-
-      ctx.strokeStyle =
-        "rgba(0,0,0," +
-        (0.12 + Math.random() * 0.18) +
-        ")";
-
-
-      ctx.lineWidth =
-        8 + Math.random() * 22;
-
-
-      ctx.lineCap = "round";
-
-      ctx.stroke();
-
-
-
-      /*
-        折痕旁边的高光
-      */
-
-      ctx.beginPath();
-
-      ctx.moveTo(
-        startX + 4,
-        startY + 4
-      );
-
-
-      ctx.quadraticCurveTo(
-        controlX + 4,
-        controlY + 4,
-        endX + 4,
-        endY + 4
-      );
-
-
-      ctx.strokeStyle =
-        "rgba(255,255,255," +
-        (0.08 + Math.random() * 0.16) +
-        ")";
-
-
-      ctx.lineWidth =
-        4 + Math.random() * 12;
-
-
-      ctx.stroke();
-
-    }
-
-
-
-    /*
-      大型折痕
-    */
-
-    for (let i = 0; i < 10; i++) {
-
-      const x =
-        Math.random() * canvas.width;
-
-      const y =
-        Math.random() * canvas.height;
-
-
-      const gradient =
-        ctx.createRadialGradient(
-          x,
-          y,
-          0,
-          x,
-          y,
-          100 + Math.random() * 160
+      const distance =
+        Math.sqrt(
+          dx * dx +
+          dy * dy
         );
 
 
-      gradient.addColorStop(
-        0,
-        "rgba(255,255,255,0.12)"
-      );
-
-
-      gradient.addColorStop(
-        0.45,
-        "rgba(0,0,0,0.10)"
-      );
-
-
-      gradient.addColorStop(
-        1,
-        "rgba(0,0,0,0)"
-      );
-
-
-      ctx.fillStyle = gradient;
-
-
-      ctx.beginPath();
-
-      ctx.arc(
-        x,
-        y,
-        120 + Math.random() * 120,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fill();
-
-    }
-
-  }
-
-
-
-  /* ---------------------------------------
-     3. 熨平某一个位置
-  --------------------------------------- */
-
-  function eraseWrinkle(x, y) {
-
-    const rect =
-      canvas.getBoundingClientRect();
-
-
-    /*
-      把浏览器坐标转换成 Canvas 坐标
-    */
-
-    const canvasX =
-      (x - rect.left)
-      * (canvas.width / rect.width);
-
-
-    const canvasY =
-      (y - rect.top)
-      * (canvas.height / rect.height);
-
-
-
-    /*
-      熨斗影响范围
-    */
-
-    const radius = 85;
-
-
-
-    ctx.save();
-
-
-    ctx.globalCompositeOperation =
-      "destination-out";
-
-
-
-    /*
-      使用渐变，
-      所以不是突然出现一个圆形洞，
-      而是慢慢被熨平。
-    */
-
-    const gradient =
-      ctx.createRadialGradient(
-        canvasX,
-        canvasY,
-        10,
-        canvasX,
-        canvasY,
-        radius
-      );
-
-
-    gradient.addColorStop(
-      0,
-      "rgba(0,0,0,0.95)"
-    );
-
-
-    gradient.addColorStop(
-      0.55,
-      "rgba(0,0,0,0.65)"
-    );
-
-
-    gradient.addColorStop(
-      1,
-      "rgba(0,0,0,0)"
-    );
-
-
-    ctx.fillStyle = gradient;
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-      canvasX,
-      canvasY,
-      radius,
-      0,
-      Math.PI * 2
-    );
-
-    ctx.fill();
-
-
-    ctx.restore();
-
-  }
-
-
-
-  /* ---------------------------------------
-     4. 鼠标控制熨斗
-  --------------------------------------- */
-
-  document.addEventListener(
-    "mousemove",
-    function(event) {
-
-      const x = event.clientX;
-      const y = event.clientY;
-
-
-      iron.style.left =
-        x + "px";
-
-      iron.style.top =
-        y + "px";
-
-
       /*
-        只有按住鼠标才熨
+        鼠标移动太快的时候
+        自动补很多点
       */
 
-      if (ironing) {
-
-        /*
-          如果鼠标移动得很快，
-          在两个位置之间补点，
-          避免出现断开的熨烫轨迹。
-        */
-
-        if (
-          lastX !== null &&
-          lastY !== null
-        ) {
-
-          const dx = x - lastX;
-          const dy = y - lastY;
-
-          const distance =
-            Math.sqrt(
-              dx * dx +
-              dy * dy
-            );
+      const steps =
+        Math.max(
+          1,
+          Math.ceil(distance / 9)
+        );
 
 
-          const steps =
-            Math.max(
-              1,
-              Math.ceil(distance / 15)
-            );
+      for (
+        let i = 0;
+        i <= steps;
+        i++
+      ) {
 
+        const x =
+          lastX +
+          dx * (i / steps);
 
-          for (
-            let i = 0;
-            i <= steps;
-            i++
-          ) {
+        const y =
+          lastY +
+          dy * (i / steps);
 
-            const px =
-              lastX +
-              dx * (i / steps);
-
-            const py =
-              lastY +
-              dy * (i / steps);
-
-
-            eraseWrinkle(
-              px,
-              py
-            );
-
-          }
-
-        }
-
-        else {
-
-          eraseWrinkle(
-            x,
-            y
-          );
-
-        }
-
-
-        lastX = x;
-        lastY = y;
+        ironAt(x, y);
 
       }
 
     }
-  );
 
+    else {
 
-
-  /* ---------------------------------------
-     5. 按下鼠标 = 开始熨
-  --------------------------------------- */
-
-  document.addEventListener(
-    "mousedown",
-    function(event) {
-
-      ironing = true;
-
-      lastX =
-        event.clientX;
-
-      lastY =
-        event.clientY;
-
-
-      document.body.classList.add(
-        "ironing"
-      );
-
-
-      eraseWrinkle(
+      ironAt(
         event.clientX,
         event.clientY
       );
 
     }
+
+
+    lastX =
+      event.clientX;
+
+    lastY =
+      event.clientY;
+
+  }
+);
+
+
+
+/* =====================================
+   鼠标按下
+===================================== */
+
+document.addEventListener(
+  "mousedown",
+  function(event) {
+
+    ironing = true;
+
+    lastX =
+      event.clientX;
+
+    lastY =
+      event.clientY;
+
+    document.body.classList.add(
+      "ironing"
+    );
+
+    ironAt(
+      event.clientX,
+      event.clientY
+    );
+
+  }
+);
+
+
+
+/* =====================================
+   鼠标松开
+===================================== */
+
+document.addEventListener(
+  "mouseup",
+  function() {
+
+    ironing = false;
+
+    lastX = null;
+    lastY = null;
+
+    document.body.classList.remove(
+      "ironing"
+    );
+
+  }
+);
+
+
+
+/* =====================================
+   真正熨平
+===================================== */
+
+function ironAt(
+  screenX,
+  screenY
+) {
+
+  const rect =
+    paper.getBoundingClientRect();
+
+
+  /*
+    鼠标不在纸上
+    就不处理
+  */
+
+  if (
+    screenX < rect.left ||
+    screenX > rect.right ||
+    screenY < rect.top ||
+    screenY > rect.bottom
+  ) {
+    return;
+  }
+
+
+  /*
+    转换成 SVG 坐标
+  */
+
+  const x =
+    (
+      (screenX - rect.left)
+      / rect.width
+    ) * 1000;
+
+
+  const y =
+    (
+      (screenY - rect.top)
+      / rect.height
+    ) * 1414;
+
+
+  /*
+    创建一个柔和的熨平区域
+  */
+
+  const circle =
+    document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "circle"
+    );
+
+
+  circle.setAttribute(
+    "cx",
+    x
   );
 
-
-
-  /* ---------------------------------------
-     6. 松开鼠标 = 停止
-  --------------------------------------- */
-
-  document.addEventListener(
-    "mouseup",
-    function() {
-
-      ironing = false;
-
-      lastX = null;
-      lastY = null;
-
-
-      document.body.classList.remove(
-        "ironing"
-      );
-
-    }
-  );
-
-
-
-  /* ---------------------------------------
-     7. 海报加载以后初始化
-  --------------------------------------- */
-
-  poster.addEventListener(
-    "load",
-    resizeCanvas
-  );
-
-
-  window.addEventListener(
-    "resize",
-    resizeCanvas
+  circle.setAttribute(
+    "cy",
+    y
   );
 
 
   /*
-    防止图片缓存后 load 已经结束
+    熨斗宽度
   */
 
-  if (poster.complete) {
+  circle.setAttribute(
+    "r",
+    "105"
+  );
 
-    resizeCanvas();
+
+  circle.setAttribute(
+    "fill",
+    "url(#ironGradient)"
+  );
+
+
+  ironedAreas.appendChild(
+    circle
+  );
+
+
+
+  /*
+    防止 DOM 无限增长
+  */
+
+  if (
+    ironedAreas.children.length >
+    1600
+  ) {
+
+    const old =
+      ironedAreas.children[0];
+
+    old.remove();
 
   }
+
+}
 
 </script>
 
